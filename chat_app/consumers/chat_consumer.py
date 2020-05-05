@@ -40,7 +40,6 @@ class ChatConsumer(WebsocketConsumer):
     def receive(self, text_data=None, byte_data=None):
         text_data_json = json.loads(text_data)
         command = text_data_json.get('command', None)
-        print(command)
         try:
             token = text_data_json['token']
             payload = decode_jwt(token)
@@ -52,8 +51,9 @@ class ChatConsumer(WebsocketConsumer):
                 self.send_room(
                     payload['username'], text_data_json['message']
                 )
-            # elif command = 'list':
-            #     self.online_users_list()
+            elif command == 'list':
+                self.online_users_list()
+
         except Exception as e:
             if settings.DEBUG:
                 traceback.print_exc()
@@ -136,11 +136,29 @@ class ChatConsumer(WebsocketConsumer):
 
     def chat_message(self, event):
         "Distribute message to all users in group"
-        print('dfdsf', event)
         self.send(text_data=json.dumps(
             {
+                'msg_type': 'message',
                 'sender': event['sender'],
                 'message': event['message'],
                 'timestamp': event['timestamp']
+            }
+        ))
+
+    def online_users_list(self):
+        online_users = self.room.participants.values('username')
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'send_list',
+                'user_list': list(online_users),
+            }
+        )
+
+    def send_list(self, event):
+        self.send(text_data=json.dumps(
+            {
+                'msg_type': 'users',
+                'userList': event['user_list']
             }
         ))
