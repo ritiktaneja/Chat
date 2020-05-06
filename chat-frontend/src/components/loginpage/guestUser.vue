@@ -34,7 +34,7 @@ export default {
             const params = new URLSearchParams();
             params.append('username',this.nick)
             const ref= this;
-           
+            
             this.$axios({
                 method : 'post',
                 url : this.$store.state.URLS.login,
